@@ -3,7 +3,7 @@ require 'aws-sdk'
 
 json = File.open('../AWS.json').read
 configHash = JSON.parse(json)
-@supportedStructures = ['ec2', 'dynamoDB', 's3']
+@supportedStructures = ['EC2', 'dynamoDB', 'S3']
 
 # Create config hash for more readable code within functions
 
@@ -19,10 +19,8 @@ formattedConfigHash = {
 # E.g.: [{'clientType': 'EC2', 'clientInstance': client}]
 # Initialize to nil
 @supportedStructures.each do |struct|
-	@currentObjects[struct] = nil;
+	@currentClients[struct] = nil;
 end
-
-
 
 def initializeClient(formattedConfigHash)
 	AWS.config(formattedConfigHash)
@@ -31,6 +29,10 @@ end
 def clientCreator(clientType, formattedConfigHash = nil)
 	if !structureSupported?(clientType)
 		raise "Specified client not supported."
+	end
+
+	if @currentClients[clientType]
+		return @currentClients[clientType]
 	end
 
 	case clientType
@@ -45,6 +47,7 @@ def clientCreator(clientType, formattedConfigHash = nil)
 		raise "The specified client type is not currently supported."
 	end
 
+	@currentClients[clientType] = client
 	return client
 
 end
@@ -90,21 +93,36 @@ def checkInstancesByType(clientType)
 	return instanceInfo
 end
 
-def checkInstances(client)
+def checkInstances(clientType)
 	#handle the various types of calls to return instance info
 	#depends on type of client
+	if !@currentClients[clientType]
+		clientCreator(clientType)
+	end
+
+	case clientType
+
+	when "ec2"
+		checkEC2Instances
+	when "dynamoDB"
+		checkDynamoDBInstances
+	when "s3"
+		checkS3Instances
+	else
+		raise "The specified client type is not currently supported."
+	end
 end
 
-def checkDynamoDBInstances(client)
-	return client.tables
+def checkDynamoDBInstances
+	return currentClients['dynamoDB'].tables
 end
 
-def checkEC2Instances(client)
-	return client.instances
+def checkEC2Instances
+	return currentClients['EC2'].instances
 end
 
-def checkS3Instances(client)
-	return client.buckets
+def checkS3Instances
+	return currentClients['S3'].buckets
 end
 
 
