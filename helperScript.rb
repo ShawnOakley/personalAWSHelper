@@ -72,7 +72,7 @@ end
 
 def checkInstancesByType(clientType)
 	if !structureSupported?(clientType)
-		raise "Specified client not supported."
+		raise "Specified client type not supported."
 	end
 	client = clientCreator(clientType)
 	instanceInfo = checkInstances(client)
@@ -86,12 +86,13 @@ end
 
 
 def checkStatusAll(configHash = nil)
+
 	if (AWS == nil) && (configHash == nil)
 		raise "Client needs to be defined."
-	else
-		supportedStructures.each do |struct|
-			clientCreator(struct)
-		end
+	end
+	supportedStructures.each do |struct|
+		client = clientCreator(struct)
+		checkInstances(client)
 	end
 
 end
