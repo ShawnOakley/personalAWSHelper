@@ -3,6 +3,7 @@ require 'aws-sdk'
 
 json = File.open('../AWS.json').read
 configHash = JSON.parse(json)
+@supportedStructures = ['ec2', 'dynamoDB', 's3']
 
 # Create config hash for more readable code within functions
 
@@ -17,6 +18,9 @@ def initializeClient(formattedConfigHash)
 end
 
 def clientCreator(clientType, formattedConfigHash = nil)
+	if !structureSupported?(clientType)
+		raise "Specified client not supported."
+	end
 
 	case clientType
 
@@ -36,10 +40,6 @@ end
 
 def optionsParser(optionsHash)
 
-end
-
-def configExists?
-	return !!(AWS)
 end
 
 def dynamoDBcreate(formattedConfigHash)
@@ -68,15 +68,24 @@ def ec2create(formattedConfigHash)
 	end
 end
 
-def checkS3buckets(configHash)
 
+
+def checkInstancesByType(clientType)
+	if !structureSupported?(clientType)
+		raise "Specified client not supported."
+	end
+	client = clientCreator(clientType)
+	instanceInfo = checkInstances(client)
+	return instanceInfo
 end
 
-def checkEC2(configHash)
-
+def checkInstances(client)
+	#handle the various types of calls to return instance info
+	#depends on type of client
 end
 
-def summarizeStates(configHash = nil)
+
+def checkStatusAll(configHash = nil)
 	if (AWS == nil) && (configHash == nil)
 		raise "Client needs to be defined."
 	else
@@ -87,4 +96,15 @@ def summarizeStates(configHash = nil)
 
 end
 
+# Helper functions to check current state of config/script capabilities
+
+def configExists?
+	return !!(AWS)
+end
+
+def structureSupported?(structure)
+ return @supportedStructures.include?(structure)
+end
+
 initializeClient(configHash)
+puts structureSupported?('ec2')
