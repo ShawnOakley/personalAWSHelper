@@ -13,6 +13,17 @@ formattedConfigHash = {
   	region:	configHash["defaultRegion"]
 }
 
+# May want an instance to track initialized clients
+# Don't need ID b/c there should only be one instance of each type,
+# as initialized
+# E.g.: [{'clientType': 'EC2', 'clientInstance': client}]
+# Initialize to nil
+@supportedStructures.each do |struct|
+	@currentObjects[struct] = nil;
+end
+
+
+
 def initializeClient(formattedConfigHash)
 	AWS.config(formattedConfigHash)
 end
@@ -84,13 +95,25 @@ def checkInstances(client)
 	#depends on type of client
 end
 
+def checkDynamoDBInstances(client)
+	return client.tables
+end
+
+def checkEC2Instances(client)
+	return client.instances
+end
+
+def checkS3Instances(client)
+	return client.buckets
+end
+
 
 def checkStatusAll(configHash = nil)
 
-	if (AWS == nil) && (configHash == nil)
+	if !configExists? && (configHash == nil)
 		raise "Client needs to be defined."
 	end
-	supportedStructures.each do |struct|
+	@supportedStructures.each do |struct|
 		client = clientCreator(struct)
 		checkInstances(client)
 	end
