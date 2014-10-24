@@ -2,17 +2,16 @@ require 'json'
 require 'aws-sdk'
 require 'highline/import'
 
-json = File.open('../AWS.json').read
-configHash = JSON.parse(json)
-@supportedStructures = ['EC2', 'dynamoDB', 'S3']
+# json = File.open('../AWS.json').read
+# configHash = JSON.parse(json)
 
 # Create config hash for more readable code within functions
 
-formattedConfigHash = {
-  	access_key_id: configHash["AWSAccessKey"],
-  	secret_access_key: configHash["AWSSecretKey"],
-  	region:	configHash["defaultRegion"]
-}
+# formattedConfigHash = {
+#   	access_key_id: configHash["AWSAccessKey"],
+#   	secret_access_key: configHash["AWSSecretKey"],
+#   	region:	configHash["defaultRegion"]
+# }
 
 # May want an instance to track initialized clients
 # Don't need ID b/c there should only be one instance of each type,
@@ -20,6 +19,7 @@ formattedConfigHash = {
 # E.g.: [{'clientType': 'EC2', 'clientInstance': client}]
 # Initialize to nil
 
+@supportedStructures = ['EC2', 'dynamoDB', 'S3']
 @currentClients = {}
 
 @supportedStructures.each do |struct|
@@ -31,8 +31,8 @@ def initializeClient(formattedConfigHash)
 end
 
 def clientCreator(clientType, formattedConfigHash = nil)
-	puts 'clientCreator call'
-	puts clientType
+	# puts 'clientCreator call'
+	# puts clientType
 	if !structureSupported?(clientType)
 		raise "Specified client not supported."
 	end
@@ -52,7 +52,7 @@ def clientCreator(clientType, formattedConfigHash = nil)
 	else
 		raise "The specified client type is not currently supported."
 	end
-	puts @currentClients
+	# puts @currentClients
 
 end
 
@@ -105,7 +105,7 @@ def checkInstances(clientType, options = nil)
 		clientCreator(clientType)
 	end
 
-	puts "checkInstances call"
+	# puts "checkInstances call"
 
 	case clientType
 
@@ -139,7 +139,7 @@ def checkStatusAll(configHash = nil)
 		raise "Client needs to be defined."
 	end
 
-	puts @supportedStructures
+	# puts @supportedStructures
 
 	@supportedStructures.each do |struct|
 		# puts 'CheckStatusAll each block'
@@ -161,6 +161,19 @@ def checkStatusAll(configHash = nil)
 	end	
 
 end
+
+def gatherResources(clientType=nil)
+	availableResources = []
+	if !(clientType)
+		@supportedStructures.each do |struct|
+			checkInstances(struct).each do |item|
+				availableResources << item
+			end
+		end	
+	end
+	return availableResources
+end
+
 
 # Helper functions to check current state of config/script capabilities
 
@@ -203,10 +216,25 @@ def startCLI
 end
 
 def startMenu
+	puts "The following resources are available to you:"
+	#NOTE: Need a formatting method
+	puts gatherResources
+	say("\nStart Menu")
+	choose do |menu|
+		menu.index        = :letter
+		menu.index_suffix = ") "
 
-	# Main Menu for interaction
-	checkStatusAll
-
+		menu.prompt = "What would you like to do?"
+		
+		menu.choice ("This is a choice") do 
+			say("Good choice!") 
+		end
+		
+		menu.choice("This too") do 
+			say("Not from around here, are you?") 
+		end
+	end
+	# checkStatusAll
 end
 
 # initializeClient(configHash)
