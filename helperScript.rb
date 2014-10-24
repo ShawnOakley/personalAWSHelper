@@ -246,6 +246,14 @@ def startMenuCLI
 			dataAlterationCLI
 		end
 
+		menu.choice("Configure/Set Security groups") do
+			securityGroupsCLI
+		end
+
+		menu.choice("Quit") do
+			quitCLI
+		end
+
 	end
 	# checkStatusAll
 end
@@ -267,6 +275,14 @@ def resourceConfigurationCLI
 end
 
 def dataAlterationCLI
+
+end
+
+def securityGroupsCLI
+
+end
+
+def quitCLI
 
 end
 
