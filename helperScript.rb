@@ -210,12 +210,12 @@ def startCLI
 
 	# NOTE: Needs error handling
 	if AWS
-		startMenu
+		startMenuCLI
 	end
 
 end
 
-def startMenu
+def startMenuCLI
 	puts "The following resources are available to you:"
 	#NOTE: Need a formatting method
 	puts gatherResources
@@ -226,15 +226,48 @@ def startMenu
 
 		menu.prompt = "What would you like to do?"
 		
-		menu.choice ("This is a choice") do 
-			say("Good choice!") 
+		menu.choice ("Initialize a new resource") do 
+			resourceInitializationCLI
 		end
 		
-		menu.choice("This too") do 
-			say("Not from around here, are you?") 
+		menu.choice("Inspect current resources.") do 
+			resourceInspectionCLI 
 		end
+
+		menu.choice("Spin down or delete a current resource.") do
+			resourceTerminationCLI
+		end
+
+		menu.choice("Alter or configure current resources.") do
+			resourceConfigurationCLI
+		end
+
+		menu.choice("Upload or delete content from current resource") do
+			dataAlterationCLI
+		end
+
 	end
 	# checkStatusAll
+end
+
+def resourceInitializationCLI
+
+end
+
+def resourceInspectionCLI
+
+end
+
+def resourceTerminationCLI
+
+end
+
+def resourceConfigurationCLI
+
+end
+
+def dataAlterationCLI
+
 end
 
 # initializeClient(configHash)
