@@ -1,5 +1,6 @@
 require 'json'
 require 'aws-sdk'
+require 'highline/import'
 
 json = File.open('../AWS.json').read
 configHash = JSON.parse(json)
@@ -18,6 +19,9 @@ formattedConfigHash = {
 # as initialized
 # E.g.: [{'clientType': 'EC2', 'clientInstance': client}]
 # Initialize to nil
+
+@currentClients = {}
+
 @supportedStructures.each do |struct|
 	@currentClients[struct] = nil;
 end
@@ -27,6 +31,8 @@ def initializeClient(formattedConfigHash)
 end
 
 def clientCreator(clientType, formattedConfigHash = nil)
+	puts 'clientCreator call'
+	puts clientType
 	if !structureSupported?(clientType)
 		raise "Specified client not supported."
 	end
@@ -37,18 +43,16 @@ def clientCreator(clientType, formattedConfigHash = nil)
 
 	case clientType
 
-	when "ec2"
-		client = ec2create(formattedConfigHash)
+	when "EC2"
+		@currentClients["EC2"] = ec2create(formattedConfigHash)
 	when "dynamoDB"
-		client  = dynamoDBcreate(formattedConfigHash)
-	when "s3"
-		client = s3create(formattedConfigHash)
+		@currentClients["dynamoDB"] = dynamoDBcreate(formattedConfigHash)
+	when "S3"
+		@currentClients["S3"] = s3create(formattedConfigHash)
 	else
 		raise "The specified client type is not currently supported."
 	end
-
-	@currentClients[clientType] = client
-	return client
+	puts @currentClients
 
 end
 
@@ -80,6 +84,7 @@ def ec2create(formattedConfigHash)
 	else 
 		client = AWS::EC2.new
 	end
+	return client
 end
 
 
@@ -88,41 +93,43 @@ def checkInstancesByType(clientType)
 	if !structureSupported?(clientType)
 		raise "Specified client type not supported."
 	end
-	client = clientCreator(clientType)
-	instanceInfo = checkInstances(client)
+	clientCreator(clientType)
+	instanceInfo = checkInstances(clientType)
 	return instanceInfo
 end
 
-def checkInstances(clientType)
+def checkInstances(clientType, options = nil)
 	#handle the various types of calls to return instance info
 	#depends on type of client
 	if !@currentClients[clientType]
 		clientCreator(clientType)
 	end
 
+	puts "checkInstances call"
+
 	case clientType
 
-	when "ec2"
-		checkEC2Instances
+	when "EC2"
+		return checkEC2Instances(options)
 	when "dynamoDB"
-		checkDynamoDBInstances
-	when "s3"
-		checkS3Instances
+		return checkDynamoDBInstances(options)
+	when "S3"
+		return checkS3Instances(options)
 	else
 		raise "The specified client type is not currently supported."
 	end
 end
 
-def checkDynamoDBInstances
-	return currentClients['dynamoDB'].tables
+def checkDynamoDBInstances(options=nil)
+	return @currentClients['dynamoDB'].tables
 end
 
-def checkEC2Instances
-	return currentClients['EC2'].instances
+def checkEC2Instances(options=nil)
+	return @currentClients['EC2'].instances
 end
 
-def checkS3Instances
-	return currentClients['S3'].buckets
+def checkS3Instances(options=nil)
+	return @currentClients['S3'].buckets
 end
 
 
@@ -131,10 +138,27 @@ def checkStatusAll(configHash = nil)
 	if !configExists? && (configHash == nil)
 		raise "Client needs to be defined."
 	end
+
+	puts @supportedStructures
+
 	@supportedStructures.each do |struct|
-		client = clientCreator(struct)
-		checkInstances(client)
+		# puts 'CheckStatusAll each block'
+		# puts struct
+		clientCreator(struct)
 	end
+
+	@supportedStructures.each do |struct|
+		checkInstances(struct).each do |item|
+			#NOTE : probably need to have resource specific formatting
+			# for descriptions, broken down by network, architecture, etc.
+			# puts item.methods
+			# puts item.config
+			# puts item.instance_variables
+			# puts item.display
+			# puts item.security_groups
+			# puts item.network_interfaces
+		end
+	end	
 
 end
 
@@ -145,8 +169,47 @@ def configExists?
 end
 
 def structureSupported?(structure)
+	# puts 'structureSupported? call' 
+	# puts structure
+	# puts @supportedStructures
  return @supportedStructures.include?(structure)
 end
 
-initializeClient(configHash)
-puts structureSupported?('ec2')
+# CLI Highline scripting functions
+
+def startCLI
+
+	jsonFile = ask("Please specify path to key/secret JSON.") do |q|
+		q.default = "../AWS.json"
+    	q.readline = true
+	end
+  	say("Checking \"#{jsonFile}\"")
+  	json = File.open(jsonFile).read
+	configHash = JSON.parse(json)
+	
+	formattedConfigHash = {
+  		access_key_id: configHash["AWSAccessKey"],
+  		secret_access_key: configHash["AWSSecretKey"],
+  		region:	configHash["defaultRegion"]
+	}
+
+	initializeClient(formattedConfigHash)
+
+	# NOTE: Needs error handling
+	if AWS
+		startMenu
+	end
+
+end
+
+def startMenu
+
+	# Main Menu for interaction
+	checkStatusAll
+
+end
+
+# initializeClient(configHash)
+# puts structureSupported?('ec2')
+
+startCLI
