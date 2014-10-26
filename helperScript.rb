@@ -19,7 +19,7 @@ require 'highline/import'
 # E.g.: [{'clientType': 'EC2', 'clientInstance': client}]
 # Initialize to nil
 
-@supportedStructures = ['EC2', 'dynamoDB', 'S3']
+@supportedStructures = ['EC2', 'dynamoDB', 'S3', 'IAM']
 @currentClients = {}
 
 @supportedStructures.each do |struct|
@@ -49,6 +49,8 @@ def clientCreator(clientType, formattedConfigHash = nil)
 		@currentClients["dynamoDB"] = dynamoDBcreate(formattedConfigHash)
 	when "S3"
 		@currentClients["S3"] = s3create(formattedConfigHash)
+	when 'IAM'
+		@currentClients["IAM"] = IAMcreate(formattedConfigHash)
 	else
 		raise "The specified client type is not currently supported."
 	end
@@ -87,7 +89,14 @@ def ec2create(formattedConfigHash)
 	return client
 end
 
-
+def IAMcreate(formattedConfigHash)
+	if !configExists?
+		client = AWS::IAM.new(formattedConfigHash)
+	else 
+		client = AWS::IAM.new
+	end
+	return client
+end
 
 def checkInstancesByType(clientType)
 	if !structureSupported?(clientType)
@@ -115,6 +124,8 @@ def checkInstances(clientType, options = nil)
 		return checkDynamoDBInstances(options)
 	when "S3"
 		return checkS3Instances(options)
+	when "IAM"
+		return checkIAM(options)
 	else
 		raise "The specified client type is not currently supported."
 	end
@@ -130,6 +141,10 @@ end
 
 def checkS3Instances(options=nil)
 	return @currentClients['S3'].buckets
+end
+
+def checkIAM(options=nil)
+	return @currentClients['IAM'].account_summary
 end
 
 
@@ -259,6 +274,80 @@ def startMenuCLI
 end
 
 def resourceInitializationCLI
+
+	choose do |menu|
+		menu.index        = :letter
+		menu.index_suffix = ") "
+
+		menu.prompt = "What kind of resource would you like to initialize?"
+		
+		menu.choice ("S3") do 
+			# S3Initialize
+			S3InitializationCLI()
+		end
+		
+		menu.choice("EC2") do 
+			# EC2Initialize
+			EC2InitializationCLI 
+		end
+
+		menu.choice("DynamoDB") do
+			# dynamoDBInitialize
+			dynamoDBInitializationCLI
+		end
+
+		menu.choice("Back") do
+		end
+
+		menu.choice("Quit") do
+		end
+
+	end
+
+end
+
+def S3InitializationCLI
+
+	choose do |menu|
+		menu.index        = :letter
+		menu.index_suffix = ") "
+
+		menu.prompt = "S3 Initialization Options"
+		
+		menu.choice ("Create a new S3 bucket.") do 
+			bucketName = ask("Enter the name of your new bucket:  ")
+			puts "Creating #{bucketName}..."
+			S3BucketCreate(bucketName)
+			startMenuCLI
+		end
+		
+		menu.choice("Create a new directory in an existing S3 bucket.") do 
+			S3BucketInitializeCLI 
+		end
+
+		menu.choice("Back") do
+		end
+
+		menu.choice("Quit") do
+		end
+
+	end
+
+end
+
+def S3Initialize
+
+	s3 = AWS::S3.new
+
+end
+
+def S3BucketCreate(bucketName)
+	@currentClients['S3'].buckets.create(bucketName)
+end
+
+def S3BucketInitializeCLI
+
+	# Prompt for selection of S3 bucket and name of new directory
 
 end
 
