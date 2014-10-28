@@ -98,15 +98,6 @@ def IAMcreate(formattedConfigHash)
 	return client
 end
 
-def checkInstancesByType(clientType)
-	if !structureSupported?(clientType)
-		raise "Specified client type not supported."
-	end
-	clientCreator(clientType)
-	instanceInfo = checkInstances(clientType)
-	return instanceInfo
-end
-
 def checkInstances(clientType, options = nil)
 	#handle the various types of calls to return instance info
 	#depends on type of client
@@ -132,15 +123,15 @@ def checkInstances(clientType, options = nil)
 end
 
 def checkDynamoDBInstances(options=nil)
-	return @currentClients['dynamoDB'].tables
+	return @currentClients['dynamoDB'].tables.inject({}) { |m, i| m[i.id] = i.status; m }
 end
 
 def checkEC2Instances(options=nil)
-	return @currentClients['EC2'].instances
+	return @currentClients['EC2'].instances.inject({}) { |m, i| m[i.id] = i.status; m }
 end
 
 def checkS3Instances(options=nil)
-	return @currentClients['S3'].buckets
+	return @currentClients['S3'].buckets.inject({}) { |m, i| m[i.id] = i.status; m }
 end
 
 def checkIAM(options=nil)
@@ -185,7 +176,11 @@ def gatherResources(clientType=nil)
 				availableResources << item
 			end
 		end	
+	else
+		checkInstances(clientType)
 	end
+
+
 	return availableResources
 end
 
@@ -313,6 +308,9 @@ def S3InitializationCLI
 		menu.index_suffix = ") "
 
 		menu.prompt = "S3 Initialization Options"
+
+		# Need to intialize a 'bucket array' to give 
+		# choices for selection
 		
 		menu.choice ("Create a new S3 bucket.") do 
 			bucketName = ask("Enter the name of your new bucket:  ")
@@ -322,7 +320,11 @@ def S3InitializationCLI
 		end
 		
 		menu.choice("Create a new directory in an existing S3 bucket.") do 
-			S3BucketInitializeCLI 
+			bucketChoices = checkInstances('S3')
+			puts "You can choose from the following buckets: "
+			bucketChoices.each do |bucket|
+				puts bucket
+			end
 		end
 
 		menu.choice("Back") do
@@ -341,14 +343,39 @@ def S3Initialize
 
 end
 
-def S3BucketCreate(bucketName)
+def S3BucketCreate(bucketName, options=nil)
 	@currentClients['S3'].buckets.create(bucketName)
 end
 
-def S3BucketInitializeCLI
+def EC2InitializationCLI
 
-	# Prompt for selection of S3 bucket and name of new directory
+	choose do |menu|
+		menu.index        = :letter
+		menu.index_suffix = ") "
 
+		menu.prompt = "EC2 Initialization Options"
+
+		# Need to intialize a 'bucket array' to give 
+		# choices for selection
+		
+		menu.choice ("Create a new EC2 instance.") do 
+			EC2InstanceCreate
+			startMenuCLI
+		end
+
+		menu.choice("Back") do
+			# NEED BACK OPTION HERE
+		end
+
+		menu.choice("Quit") do
+		end
+
+	end
+
+end
+
+def EC2InstanceCreate(image_id = "ami-8c1fece5", option=nil)
+	@currentClients['EC2'].instances.create(:image_id => image_id)
 end
 
 def resourceInspectionCLI
