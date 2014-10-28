@@ -158,16 +158,37 @@ def checkStatusAll(configHash = nil)
 
 	@supportedStructures.each do |struct|
 		checkInstances(struct).each do |item|
-			#NOTE : probably need to have resource specific formatting
-			# for descriptions, broken down by network, architecture, etc.
-			# puts item.methods
-			# puts item.config
-			# puts item.instance_variables
-			# puts item.display
-			# puts item.security_groups
-			# puts item.network_interfaces
+			formatItem(struct, item)
 		end
 	end	
+
+end
+
+def formatItem(clientType, instance)
+
+	if !@currentClients[clientType]
+		clientCreator(clientType)
+	end
+
+	# puts "checkInstances call"
+
+	case clientType
+
+	when "EC2"
+		puts @currentClients["EC2"].instances.inject({}) { |m, i| m[i.id] = i.status; m }
+	when "dynamoDB"
+		@currentClients["dynamoDB"].tables.each do |table|
+			puts table.name
+		end
+	when "S3"
+		@currentClients["S3"].buckets.each do |bucket|
+  			puts bucket.name
+		end
+	when "IAM"
+		# return checkIAM(options)
+	else
+		raise "The specified client type is not currently supported."
+	end
 
 end
 
@@ -231,7 +252,8 @@ end
 def startMenuCLI
 	puts "The following resources are available to you:"
 	#NOTE: Need a formatting method
-	puts gatherResources
+	gatherResources()
+	checkStatusAll()
 	say("\nStart Menu")
 	choose do |menu|
 		menu.index        = :letter
