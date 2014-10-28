@@ -123,15 +123,18 @@ def checkInstances(clientType, options = nil)
 end
 
 def checkDynamoDBInstances(options=nil)
-	return @currentClients['dynamoDB'].tables.inject({}) { |m, i| m[i.id] = i.status; m }
+	return @currentClients['dynamoDB'].tables
+	# .inject({}) { |m, i| m[i.id] = i.status; m }
 end
 
 def checkEC2Instances(options=nil)
-	return @currentClients['EC2'].instances.inject({}) { |m, i| m[i.id] = i.status; m }
+	return @currentClients['EC2'].instances
+	# .inject({}) { |m, i| m[i.id] = i.status; m }
 end
 
 def checkS3Instances(options=nil)
-	return @currentClients['S3'].buckets.inject({}) { |m, i| m[i.id] = i.status; m }
+	return @currentClients['S3'].buckets
+	# .inject({}) { |m, i| m[i.id] = i.status; m }
 end
 
 def checkIAM(options=nil)
@@ -283,12 +286,12 @@ def resourceInitializationCLI
 		
 		menu.choice("EC2") do 
 			# EC2Initialize
-			EC2InitializationCLI 
+			EC2InitializationCLI() 
 		end
 
 		menu.choice("DynamoDB") do
 			# dynamoDBInitialize
-			dynamoDBInitializationCLI
+			dynamoDBInitializationCLI()
 		end
 
 		menu.choice("Back") do
@@ -339,7 +342,7 @@ end
 
 def S3Initialize
 
-	s3 = AWS::S3.new
+	@currentClients['S3'].new()
 
 end
 
@@ -359,8 +362,8 @@ def EC2InitializationCLI
 		# choices for selection
 		
 		menu.choice ("Create a new EC2 instance.") do 
-			EC2InstanceCreate
-			startMenuCLI
+			EC2InstanceCreate()
+			startMenuCLI()
 		end
 
 		menu.choice("Back") do
@@ -376,6 +379,41 @@ end
 
 def EC2InstanceCreate(image_id = "ami-8c1fece5", option=nil)
 	@currentClients['EC2'].instances.create(:image_id => image_id)
+end
+
+def dynamoDBInitializationCLI()
+
+	choose do |menu|
+		menu.index        = :letter
+		menu.index_suffix = ") "
+
+		menu.prompt = "DynamoDB Initialization Options"
+
+		# Need to intialize a 'bucket array' to give 
+		# choices for selection
+		
+		menu.choice ("Create a new DynamoDB Table.") do 
+			dynamoDBCreate()
+			startMenuCLI()
+		end
+
+		menu.choice("Back") do
+			# NEED BACK OPTION HERE
+		end
+
+		menu.choice("Quit") do
+		end
+
+	end
+
+end
+
+def dynamoDBCreate(tableName='defaultTableName', x=10,y=5,hash_key={id: :string })
+	table = @currentClients['dynamoDB'].tables.create(
+  		tableName, x, y,
+  	hash_key: hash_key
+	)
+	sleep 1 while table.status == :creating
 end
 
 def resourceInspectionCLI
